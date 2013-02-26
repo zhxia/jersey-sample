@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xsi:schemaLocation="
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-2.5.xsd"
+    default-init-method="myinit" default-destroy-method="mydestroy">
+    <bean id="appConfigure"
+        class="org.springframework.beans.factory.config.PreferencesPlaceholderConfigurer">
+        <property name="ignoreUnresolvablePlaceholders" value="true" />
+        <property name="locations">
+            <list>
+                <value>classpath:META-INF/config/appConfigs.properties</value>
+            </list>
+        </property>
+    </bean>
+    <context:component-scan base-package="com.aifang.apps"></context:component-scan>
+<!-- 	<context:component-scan base-package="com.aifang.apps.dao"></context:component-scan>
+    <context:component-scan base-package="com.aifang.apps.model"></context:component-scan> -->
+    <bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+        lazy-init="true">
+        <property name="driverClassName" value="${jdbc.driver}" />
+        <property name="url" value="${db.rw.url}" />
+        <property name="username" value="${db.rw.username}" />
+        <property name="password" value="${db.rw.password}" />
+        <property name="initialSize" value="${db.rw.initialSize}" />
+        <property name="maxActive" value="${db.rw.maxActive}" />
+        <property name="maxIdle" value="${db.rw.maxIdle}" />
+        <property name="minIdle" value="${db.rw.minIdle}" />
+        <property name="maxWait" value="${db.rw.maxWait}" />
+        <property name="poolPreparedStatements" value="true" />
+        <property name="defaultReadOnly" value="false" />
+        <property name="testOnBorrow" value="true" />
+        <property name="validationQuery" value="SELECT 1" />
+        <property name="minEvictableIdleTimeMillis" value="60000" />
+        <property name="timeBetweenEvictionRunsMillis" value="30000" />
+    </bean>
+    <bean id="sessionFactory"
+        class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+        <property name="dataSource" ref="dataSource" />
+        <property name="hibernateProperties">
+            <props>
+                <prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+                <!-- <prop key="hibernate.hbm2ddl.auto">update</prop> -->
+                <prop key="hibernate.format_sql">true</prop>
+                <prop key="hibernate.show_sql">true</prop>
+            </props>
+        </property>
+        <property name="packagesToScan" value="com.aifang.apps.model"/>
+    </bean>
+    <!-- 配置HibernateTemplate，用于完成数据操作 -->
+    <bean id="hibernateTemplate" class="org.springframework.orm.hibernate3.HibernateTemplate">
+        <property name="sessionFactory" ref="sessionFactory"></property>
+    </bean>
+    <!-- 配置事务管理器 -->
+    <bean id="transactionManager"
+        class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+        <property name="sessionFactory">
+            <ref bean="sessionFactory" />
+        </property>
+    </bean>
+    <bean id="taskListThreadPool" class="com.aifang.apps.common.ThreadPool">
+        <property name="threadNum" value="${taskListThreadPool.maxThread}"></property>
+    </bean>
+
+    <!-- BLL -->
+    <bean id="articleBll" class="com.aifang.apps.bll.ArticleBll">
+        <property name="articleDao" ref="articleDao"></property>
+    </bean>
+    <bean id="userBll" class="com.aifang.apps.bll.UserBll">
+        <property name="userDao" ref="userDao"></property>
+    </bean>
+    <!-- DAO -->
+    <bean id="articleDao" class="com.aifang.apps.dao.ArticleDao">
+        <property name="sessionFactory" ref="sessionFactory"></property>
+    </bean>
+    <bean id="userDao" class="com.aifang.apps.dao.UserDao">
+        <property name="sessionFactory" ref="sessionFactory"></property>
+    </bean>
+    <!-- tasklist -->
+    <bean id="testTaskList" class="com.aifang.apps.common.TaskList">
+        <property name="taskList">
+            <list>
+                <ref local="doTask"/>
+                <ref local="doTask2"/>
+            </list>
+        </property>
+        <property name="threadPoolExecutor" ref="taskListThreadPool"></property>
+    </bean>
+    <!-- task -->
+    <bean id="doTask" class="com.aifang.apps.task.solr.DoTask"></bean>
+    <bean id="doTask2" class="com.aifang.apps.task.solr.DoTask2"></bean>
+</beans>
